@@ -18,6 +18,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.h2.engine.User
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
 import kotlin.collections.set
@@ -72,7 +73,7 @@ fun Application.configureDatabases() {
                 VerificationCodes.insertOrUpdate(VerificationCodes.email) {
                     it[email] = request.email
                     it[VerificationCodes.code] = code
-                    it[createdAt] = LocalDateTime.now()
+//                    it[createdAt] = LocalDateTime.now()
                 }
             }
 
