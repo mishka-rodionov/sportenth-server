@@ -1,5 +1,6 @@
 package com.sportenth
 
+import com.sportenth.data.database.configureDatabases
 import io.ktor.server.application.*
 
 fun main(args: Array<String>) {

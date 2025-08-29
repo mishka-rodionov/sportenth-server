@@ -6,7 +6,7 @@ info:
 servers:
   - url: "http://0.0.0.0:8080"
 paths:
-  /:
+  /info:
     get:
       description: "Hello World!"
       responses:
