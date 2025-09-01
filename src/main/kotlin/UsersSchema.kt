@@ -1,5 +1,6 @@
 package com.sportenth
 
+import com.sportenth.data.database.entity.VerificationCodes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.*
@@ -22,7 +23,7 @@ class UserService(database: Database) {
 
     init {
         transaction(database) {
-            SchemaUtils.create(Users)
+            SchemaUtils.create(Users, VerificationCodes)
         }
     }
 

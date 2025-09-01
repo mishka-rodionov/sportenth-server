@@ -6,13 +6,13 @@ import jakarta.mail.internet.MimeMessage
 import java.util.*
 
 fun sendVerificationCode(email: String, code: String) {
-    val username = "your_email@gmail.com"
-    val password = "your_app_password"
+    val username = "rodionov.mikhail.a@yandex.ru"
+    val password = "jrghydbbjmczktkw"
 
     val props = Properties().apply {
         put("mail.smtp.auth", "true")
         put("mail.smtp.starttls.enable", "true")
-        put("mail.smtp.host", "smtp.gmail.com")
+        put("mail.smtp.host", "smtp.yandex.ru")
         put("mail.smtp.port", "587")
     }
 

@@ -16,9 +16,15 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import org.h2.engine.User
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.collections.set
 
@@ -69,11 +75,16 @@ fun Application.configureDatabases() {
             val code = (100000..999999).random().toString()
 
             transaction {
-                VerificationCodes.insertOrUpdate(VerificationCodes.email) {
-                    it[email] = request.email
-                    it[VerificationCodes.code] = code
-                    it[createdAt] = LocalDateTime.now()
-                }
+                VerificationCodes.upsert(
+                    VerificationCodes.email, VerificationCodes.code,
+                    body = {
+                        it[VerificationCodes.email] = request.email
+                        it[VerificationCodes.code] = code
+                        it[VerificationCodes.createdAt] = LocalDateTime.now()
+                    },
+                    /*where = {
+                        VerificationCodes.email eq request.email
+                    }*/)
             }
 
             sendVerificationCode(request.email, code)
@@ -94,17 +105,18 @@ fun Application.configureDatabases() {
             }
 
             val userId = transaction {
-                val existing = UserService.Users.selectAll().where { UserService.Users.email eq request.email }.singleOrNull()
-                if (existing != null) existing[UserService.Users.id].toString()
+                val existing =
+                    UserService.Users.selectAll().where { UserService.Users.email eq request.email }.singleOrNull()
+                if (existing != null) async { existing[UserService.Users.id].toString() }
                 else {
-                    userService.create(ExposedUser(request.email, age = 18, email = request.email)).toString()
+                    async { userService.create(ExposedUser(request.email, age = 18, email = request.email)).toString() }
                 }
             }
 
             // Удаляем использованный код
             transaction { VerificationCodes.deleteWhere { VerificationCodes.email eq request.email } }
 
-            val accessToken = generateAccessToken(userId)
+            val accessToken = generateAccessToken(userId.await())
             val refreshToken = generateRefreshToken()
 
             call.respond(TokenResponse(accessToken, refreshToken))
