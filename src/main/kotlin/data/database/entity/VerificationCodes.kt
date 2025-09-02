@@ -9,6 +9,7 @@ import java.time.LocalDateTime
 import kotlin.io.use
 
 object VerificationCodes : Table("verification_codes") {
+    val id = integer("id").autoIncrement()
     val email = varchar("email", 255).uniqueIndex()
     val code = varchar("code", 6)
     val createdAt = datetime("created_at")

@@ -7,6 +7,7 @@ import com.sportenth.data.database.entity.VerificationCodes
 import com.sportenth.data.requests.CodeVerificationRequest
 import com.sportenth.data.requests.EmailRequest
 import com.sportenth.data.response.TokenResponse
+import com.sportenth.data.response.base.CommonModel
 import com.sportenth.data.services.smtp.sendVerificationCode
 import com.sportenth.data.services.smtp.tokens.generateAccessToken
 import com.sportenth.data.services.smtp.tokens.generateRefreshToken
@@ -70,13 +71,13 @@ fun Application.configureDatabases() {
             call.respond(HttpStatusCode.OK)
         }
 
-        post("/request-code") {
+        post("/request_code") {
             val request = call.receive<EmailRequest>()
             val code = (100000..999999).random().toString()
 
             transaction {
                 VerificationCodes.upsert(
-                    VerificationCodes.email, VerificationCodes.code,
+                    VerificationCodes.email,
                     body = {
                         it[VerificationCodes.email] = request.email
                         it[VerificationCodes.code] = code
@@ -88,11 +89,12 @@ fun Application.configureDatabases() {
             }
 
             sendVerificationCode(request.email, code)
-            call.respond(mapOf("message" to "Verification code sent"))
+//            call.respond(mapOf("message" to "Verification code sent"))
+            call.respond(CommonModel<Any>().also { model -> model.status = 1 })
         }
 
         // 2. Проверка кода
-        post("/verify-code") {
+        post("/verify_code") {
             val request = call.receive<CodeVerificationRequest>()
             val storedCode = transaction {
                 VerificationCodes.selectAll().where { VerificationCodes.email eq request.email }
@@ -119,7 +121,10 @@ fun Application.configureDatabases() {
             val accessToken = generateAccessToken(userId.await())
             val refreshToken = generateRefreshToken()
 
-            call.respond(TokenResponse(accessToken, refreshToken))
+            val response: CommonModel<TokenResponse> = CommonModel<TokenResponse>().also { model -> model.status = 1 }
+            response.result = TokenResponse(accessToken, refreshToken)
+
+            call.respond(response)
         }
 
     }

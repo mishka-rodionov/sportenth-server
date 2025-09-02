@@ -7,7 +7,7 @@ import java.util.*
 
 fun sendVerificationCode(email: String, code: String) {
     val username = "rodionov.mikhail.a@yandex.ru"
-    val password = "jrghydbbjmczktkw"
+    val password = "zbketatgxwmryfvh"
 
     val props = Properties().apply {
         put("mail.smtp.auth", "true")
