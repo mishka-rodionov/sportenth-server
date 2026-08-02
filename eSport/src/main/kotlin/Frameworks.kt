@@ -1,5 +1,6 @@
 package com.competra
 
+import com.competra.data.util.requireEnv
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.RabbitMQ
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.dsl.*
 import io.github.damir.denis.tudor.ktor.server.rabbitmq.rabbitMQ
@@ -44,7 +45,7 @@ fun Application.configureFrameworks() {
     val rabbitMQScope = CoroutineScope(SupervisorJob() + exceptionHandler)
 
     install(RabbitMQ) {
-        uri = System.getenv("RABBITMQ_URI") ?: "amqp://guest:guest@localhost:5672"
+        uri = requireEnv("RABBITMQ_URI")
         defaultConnectionName = "default-connection"
         dispatcherThreadPollSize = 4
         tlsEnabled = false

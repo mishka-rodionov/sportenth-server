@@ -18,4 +18,6 @@ data class UserRequest(
     @SerializedName("email")
     val email: String,
 //    val qualification: List<Qualification>
+    @SerializedName("privacy_accepted")
+    val privacyAccepted: Boolean = false,
 )

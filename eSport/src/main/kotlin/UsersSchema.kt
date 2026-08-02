@@ -26,6 +26,7 @@ data class UserEntity(
     val avatarCropY: Double? = null,
     val avatarCropWidth: Double? = null,
     val avatarCropHeight: Double? = null,
+    val privacyAcceptedAt: Long? = null,
 )
 
 class UserService(database: Database) {
@@ -43,6 +44,7 @@ class UserService(database: Database) {
         val avatarCropY = double("avatar_crop_y").nullable()
         val avatarCropWidth = double("avatar_crop_width").nullable()
         val avatarCropHeight = double("avatar_crop_height").nullable()
+        val privacyAcceptedAt = long("privacy_accepted_at").nullable()
 
         override val primaryKey = PrimaryKey(id)
     }
@@ -67,6 +69,7 @@ class UserService(database: Database) {
             it[avatarCropY] = user.avatarCropY
             it[avatarCropWidth] = user.avatarCropWidth
             it[avatarCropHeight] = user.avatarCropHeight
+            it[privacyAcceptedAt] = user.privacyAcceptedAt
         }[Users.id]
     }
 
@@ -88,6 +91,7 @@ class UserService(database: Database) {
                     avatarCropY = it[Users.avatarCropY],
                     avatarCropWidth = it[Users.avatarCropWidth],
                     avatarCropHeight = it[Users.avatarCropHeight],
+                    privacyAcceptedAt = it[Users.privacyAcceptedAt],
                 ) }
                 .singleOrNull()
         }
@@ -107,6 +111,7 @@ class UserService(database: Database) {
                 it[avatarCropY] = user.avatarCropY
                 it[avatarCropWidth] = user.avatarCropWidth
                 it[avatarCropHeight] = user.avatarCropHeight
+                it[privacyAcceptedAt] = user.privacyAcceptedAt
             }
         }
     }

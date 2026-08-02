@@ -4,6 +4,7 @@ import com.rodionov.remote.request.user.UserRequest
 import com.competra.UserEntity
 import com.competra.UserService
 import com.competra.data.requests.UserProfileRequest
+import com.competra.data.util.requireEnv
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
@@ -75,7 +76,7 @@ fun Application.configureDatabases() {
         url = System.getenv("DB_URL") ?: "jdbc:postgresql://localhost:5432/postgres",
         driver = "org.postgresql.Driver",
         user = System.getenv("DB_USER") ?: "rodionov",
-        password = System.getenv("DB_PASSWORD") ?: "123456789"
+        password = requireEnv("DB_PASSWORD")
     )
     val userService = UserService(database)
     transaction(database) {
@@ -174,6 +175,8 @@ fun Application.configureDatabases() {
         exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_crop_y DOUBLE PRECISION")
         exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_crop_width DOUBLE PRECISION")
         exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_crop_height DOUBLE PRECISION")
+        // Фиксация согласия на обработку персональных данных при регистрации (152-ФЗ ст.9).
+        exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS privacy_accepted_at BIGINT")
 
         // Клубы: опциональный владелец-клуб соревнования. FK добавляется отдельно (идемпотентно
         // через DO-блок ниже), т.к. ADD CONSTRAINT IF NOT EXISTS не поддерживается в PostgreSQL.
@@ -308,39 +311,6 @@ fun Application.configureDatabases() {
     }
     routing {
         route("/api") {
-        // Create user
-        post("/users") {
-            val user = call.receive<UserEntity>()
-            val id = userService.create(user)
-            call.respond(HttpStatusCode.Created, id)
-        }
-
-        // Read user
-        get("/users/{id}") {
-            val id = call.parameters["id"] ?: throw IllegalArgumentException("Invalid ID")
-            val user = userService.read(id)
-            if (user != null) {
-                call.respond(HttpStatusCode.OK, user)
-            } else {
-                call.respond(HttpStatusCode.NotFound)
-            }
-        }
-
-        // Update user
-        put("/users/{id}") {
-            val id = call.parameters["id"] ?: throw IllegalArgumentException("Invalid ID")
-            val user = call.receive<UserEntity>()
-            userService.update(id, user)
-            call.respond(HttpStatusCode.OK)
-        }
-
-        // Delete user
-        delete("/users/{id}") {
-            val id = call.parameters["id"] ?: throw IllegalArgumentException("Invalid ID")
-            userService.delete(id)
-            call.respond(HttpStatusCode.OK)
-        }
-
         post("/user/login") {
             val request = call.receive<EmailRequest>()
             createAndSendVerificationCode(request.email)
@@ -358,6 +328,16 @@ fun Application.configureDatabases() {
                     CommonModel<Any>().also { model ->
                         model.status = 0
                         model.errors = listOf(BaseError(code = 1001, message = "Данная электронная почта уже используется. Введите новую."))
+                    }
+                )
+                return@post
+            }
+
+            if (!userRequest.privacyAccepted) {
+                call.respond(
+                    CommonModel<Any>().also { model ->
+                        model.status = 0
+                        model.errors = listOf(BaseError(code = 1002, message = "Необходимо согласие на обработку персональных данных."))
                     }
                 )
                 return@post
@@ -400,7 +380,8 @@ fun Application.configureDatabases() {
                                 birthDate = tempUser?.birthDate ?: "",
                                 photo = "",
                                 phoneNumber = "",
-                                email = request.email
+                                email = request.email,
+                                privacyAcceptedAt = if (tempUser?.privacyAccepted == true) System.currentTimeMillis() else null,
                             )
                         )
                     }
@@ -510,7 +491,8 @@ fun Application.configureDatabases() {
                     avatarCropX = request.avatarCropX ?: current.avatarCropX,
                     avatarCropY = request.avatarCropY ?: current.avatarCropY,
                     avatarCropWidth = request.avatarCropWidth ?: current.avatarCropWidth,
-                    avatarCropHeight = request.avatarCropHeight ?: current.avatarCropHeight
+                    avatarCropHeight = request.avatarCropHeight ?: current.avatarCropHeight,
+                    privacyAcceptedAt = current.privacyAcceptedAt,
                 ))
                 val updated = userService.read(userId)!!
                 call.respond(CommonModel<UserResponse>().also {
@@ -532,6 +514,52 @@ fun Application.configureDatabases() {
                         qualification = emptyList()
                     )
                 })
+            }
+
+            delete("/user/me") {
+                val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asString()
+                val user = userService.read(userId)
+                if (user == null) {
+                    call.respond(CommonModel<Any>().also {
+                        it.status = 0
+                        it.errors = listOf(BaseError(404, "User not found"))
+                    })
+                    return@delete
+                }
+
+                val ownsCompetitions = transaction {
+                    Competitions.selectAll().where { Competitions.ownerId eq userId }.any()
+                }
+                if (ownsCompetitions) {
+                    call.respond(CommonModel<Any>().also {
+                        it.status = 0
+                        it.errors = listOf(BaseError(
+                            code = 1003,
+                            message = "Нельзя удалить аккаунт: вы являетесь организатором соревнований. " +
+                                "Передайте организацию другому пользователю или удалите свои соревнования."
+                        ))
+                    })
+                    return@delete
+                }
+
+                transaction {
+                    RefreshTokens.deleteWhere { RefreshTokens.userId eq userId }
+                    DeviceTokens.deleteWhere { DeviceTokens.userId eq userId }
+                    // RunDetails/BikeDetails/SkiDetails удаляются каскадно на уровне БД (FK ON DELETE CASCADE).
+                    Workouts.deleteWhere { Workouts.userId eq userId }
+                    // TeamMembers удаляются каскадно на уровне БД (FK на club_member_id ON DELETE CASCADE).
+                    ClubMembers.deleteWhere { ClubMembers.userId eq userId }
+                    ClubJoinRequests.deleteWhere { ClubJoinRequests.userId eq userId }
+                    // Результаты соревнований — не персональные данные аккаунта, а часть протокола
+                    // соревнования: обезличиваем связь с аккаунтом, но не удаляем сам результат.
+                    OrienteeringParticipants.update({ OrienteeringParticipants.userId eq userId }) {
+                        it[OrienteeringParticipants.userId] = null
+                    }
+                    VerificationCodes.deleteWhere { VerificationCodes.email eq user.email }
+                    UserService.Users.deleteWhere { UserService.Users.id eq userId }
+                }
+
+                call.respond(CommonModel<Any>().also { it.status = 1 })
             }
         }
 
