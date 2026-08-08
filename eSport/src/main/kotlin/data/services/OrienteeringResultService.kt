@@ -151,8 +151,11 @@ class OrienteeringResultService {
 
         val sortedRows = finishedRows.sortedWith(comparator)
 
+        // Для BY_CHOICE ключ должен включать finishTime — иначе два участника с одинаковыми
+        // очками, но разным временем (тай-брейк уже учтён компаратором выше), получат одно и то
+        // же место вместо разных.
         fun rankKey(row: ResultRow): Any = if (direction == "BY_CHOICE") {
-            row[OrienteeringResults.totalScore] ?: 0
+            (row[OrienteeringResults.totalScore] ?: 0) to (row[OrienteeringResults.finishTime] ?: Long.MAX_VALUE)
         } else {
             (row[OrienteeringResults.totalTime] ?: Long.MAX_VALUE) + row[OrienteeringResults.penaltyTime]
         }
