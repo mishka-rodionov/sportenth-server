@@ -525,6 +525,7 @@ class OrienteeringCompetitionService(
             description = comp[Competitions.description],
             address = comp[Competitions.address],
             mainOrganizerId = comp[Competitions.mainOrganizerId],
+            organizingClubId = comp[Competitions.organizingClubId],
             coordinates = if (comp[Competitions.latitude] != null && comp[Competitions.longitude] != null)
                 CoordinatesResponse(comp[Competitions.latitude]!!, comp[Competitions.longitude]!!)
             else null,

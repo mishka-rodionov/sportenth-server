@@ -22,6 +22,7 @@ data class CompetitionDetailResponse(
     val description: String?,
     val address: String?,
     val mainOrganizerId: String?,
+    val organizingClubId: String? = null,
     val coordinates: CoordinatesResponse?,
     val status: String,
     val registrationStart: Long?,
