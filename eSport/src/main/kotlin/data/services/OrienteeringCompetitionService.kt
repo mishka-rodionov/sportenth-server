@@ -16,6 +16,7 @@ import com.competra.data.response.orienteering.CompetitionResponse
 import com.competra.data.response.orienteering.CoordinatesResponse
 import com.competra.data.response.orienteering.OrienteeringCompetitionResponse
 import com.competra.data.response.orienteering.ParticipantGroupDetailResponse
+import com.competra.UserService
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Case
 import org.jetbrains.exposed.sql.ExpressionWithColumnType
@@ -477,7 +478,9 @@ class OrienteeringCompetitionService(
     }
 
     suspend fun getById(competitionId: String, userId: String? = null): CompetitionDetailResponse? = dbQuery {
-        val comp = Competitions.selectAll()
+        val comp = Competitions
+            .join(UserService.Users, JoinType.LEFT, Competitions.mainOrganizerId, UserService.Users.id)
+            .selectAll()
             .where { Competitions.id eq competitionId }
             .singleOrNull() ?: return@dbQuery null
 
@@ -526,6 +529,10 @@ class OrienteeringCompetitionService(
             address = comp[Competitions.address],
             mainOrganizerId = comp[Competitions.mainOrganizerId],
             organizingClubId = comp[Competitions.organizingClubId],
+            organizerFirstName = comp.getOrNull(UserService.Users.firstName),
+            organizerLastName = comp.getOrNull(UserService.Users.lastName),
+            organizerMiddleName = comp.getOrNull(UserService.Users.middleName),
+            startTime = orient?.get(OrienteeringCompetitions.startTime),
             coordinates = if (comp[Competitions.latitude] != null && comp[Competitions.longitude] != null)
                 CoordinatesResponse(comp[Competitions.latitude]!!, comp[Competitions.longitude]!!)
             else null,
