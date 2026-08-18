@@ -46,8 +46,11 @@ object IOFXmlParser {
                 val type   = cc.getAttribute("type")
                 val ctrlId = cc.getElementsByTagName("Control").item(0)?.textContent ?: ""
                 val code   = ctrlId.filter { it.isDigit() }.toIntOrNull()
-                val role   = when (type) { "Start" -> "Start"; "Finish" -> "Finish"; else -> "ORDINARY" }
-                if (role == "Finish" && code != null) finishNumber = code
+                // Значения должны совпадать с ControlPointRole на Android (Gson @SerializedName
+                // там в нижнем регистре: "start"/"finish"/"ordinary") — иначе Gson не может
+                // разобрать поле и роняет NPE при сборке доменной модели дистанции.
+                val role   = when (type) { "Start" -> "start"; "Finish" -> "finish"; else -> "ordinary" }
+                if (role == "finish" && code != null) finishNumber = code
                 val position = controlPositions[ctrlId]
                 ControlPointRequest(
                     number = code ?: j,
