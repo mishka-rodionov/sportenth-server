@@ -17,6 +17,7 @@ import com.competra.data.services.ClubJoinRequestService
 import com.competra.data.services.ClubMemberService
 import com.competra.data.services.ClubService
 import com.competra.data.services.CompetitionNotificationLogService
+import com.competra.data.services.CompetitionOrganizerService
 import com.competra.data.services.DeviceTokenService
 import com.competra.data.services.DiaryWorkoutService
 import com.competra.data.services.DistanceService
@@ -52,6 +53,7 @@ fun Application.configureRouting() {
     val participantService = OrienteeringParticipantService()
     val resultService = OrienteeringResultService()
     val distanceService = DistanceService()
+    val organizerService = CompetitionOrganizerService()
     val uploadService = UploadService()
     val deviceTokenService = DeviceTokenService()
     val fcmService = FcmService(deviceTokenService)
@@ -72,7 +74,7 @@ fun Application.configureRouting() {
         healthRoutes()
 
         route("/api") {
-            orienteeringPublicRoutes(competitionService, participantService, resultService, groupService)
+            orienteeringPublicRoutes(competitionService, participantService, resultService, groupService, organizerService)
             clubsPublicRoutes(clubService, clubMemberService)
             teamsPublicRoutes(teamService, teamMemberService)
             ratingPublicRoutes(ratingService)
@@ -120,7 +122,7 @@ fun Application.configureRouting() {
                     )
                 }
 
-                orienteeringRoutes(competitionService, groupService, participantService, resultService, distanceService)
+                orienteeringRoutes(competitionService, groupService, participantService, resultService, distanceService, organizerService)
                 deviceRoutes(deviceTokenService, fcmService)
                 diaryRoutes(diaryWorkoutService)
                 clubsRoutes(clubService, clubMemberService, clubJoinRequestService)

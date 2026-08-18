@@ -2,6 +2,7 @@ package com.competra.data.services
 
 import com.competra.data.database.entity.ParticipantGroups
 import com.competra.data.exception.ConflictException
+import com.competra.data.exception.ForbiddenException
 import com.competra.data.requests.orienteering.ParticipantGroupRequest
 import com.competra.data.response.orienteering.ParticipantGroupResponse
 import kotlinx.coroutines.Dispatchers
@@ -15,10 +16,11 @@ import org.jetbrains.exposed.sql.update
 
 class ParticipantGroupService {
 
-    suspend fun upsertAll(requests: List<ParticipantGroupRequest>): List<ParticipantGroupResponse> = dbQuery {
+    suspend fun upsertAll(requests: List<ParticipantGroupRequest>, userId: String): List<ParticipantGroupResponse> = dbQuery {
         val now = System.currentTimeMillis()
         requests.map { req ->
             if (req.groupId == null) {
+                requireGroupEditAccess(req.competitionId, userId)
                 val generatedId = ParticipantGroups.insert {
                     it[competitionId] = req.competitionId
                     it[title] = req.title
@@ -50,6 +52,7 @@ class ParticipantGroupService {
                 }
 
                 if (existing == null) {
+                    requireGroupEditAccess(req.competitionId, userId)
                     ParticipantGroups.insert {
                         it[id] = req.groupId
                         it[competitionId] = req.competitionId
@@ -65,6 +68,10 @@ class ParticipantGroupService {
                         it[updatedAt] = now
                     }
                 } else {
+                    if (existing[ParticipantGroups.competitionId] != req.competitionId) {
+                        throw ForbiddenException("Группа участников принадлежит другому соревнованию")
+                    }
+                    requireGroupEditAccess(req.competitionId, userId)
                     ParticipantGroups.update({ ParticipantGroups.id eq req.groupId }) {
                         it[competitionId] = req.competitionId
                         it[title] = req.title
@@ -94,7 +101,10 @@ class ParticipantGroupService {
             .map { it.toResponse() }
     }
 
-    suspend fun deleteById(id: Long): Boolean = dbQuery {
+    suspend fun deleteById(id: Long, userId: String): Boolean = dbQuery {
+        val existing = ParticipantGroups.selectAll().where { ParticipantGroups.id eq id }.singleOrNull()
+            ?: return@dbQuery false
+        requireGroupEditAccess(existing[ParticipantGroups.competitionId], userId)
         @Suppress("DEPRECATION")
         ParticipantGroups.deleteWhere { ParticipantGroups.id eq id } > 0
     }

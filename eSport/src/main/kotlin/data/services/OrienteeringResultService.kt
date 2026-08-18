@@ -4,6 +4,7 @@ import com.competra.data.database.entity.OrienteeringCompetitions
 import com.competra.data.database.entity.OrienteeringResults
 import com.competra.data.database.entity.SplitTimes
 import com.competra.data.exception.ConflictException
+import com.competra.data.exception.ForbiddenException
 import com.competra.data.requests.orienteering.OrienteeringResultRequest
 import com.competra.data.response.orienteering.OrienteeringResultResponse
 import com.competra.data.response.orienteering.SplitTimeResponse
@@ -19,8 +20,8 @@ import org.jetbrains.exposed.sql.update
 
 class OrienteeringResultService {
 
-    suspend fun upsert(req: OrienteeringResultRequest): OrienteeringResultResponse = dbQuery {
-        upsertSingle(req)
+    suspend fun upsert(req: OrienteeringResultRequest, callerUserId: String): OrienteeringResultResponse = dbQuery {
+        upsertSingle(req, callerUserId)
         recalculateRanksForGroup(req.competitionId, req.groupId)
         loadResponse(req.id)
     }
@@ -28,9 +29,9 @@ class OrienteeringResultService {
     /**
      * Batch-upsert с одним пересчётом мест на каждую уникальную пару (competitionId, groupId).
      */
-    suspend fun upsertAll(requests: List<OrienteeringResultRequest>): List<OrienteeringResultResponse> = dbQuery {
+    suspend fun upsertAll(requests: List<OrienteeringResultRequest>, callerUserId: String): List<OrienteeringResultResponse> = dbQuery {
         if (requests.isEmpty()) return@dbQuery emptyList()
-        requests.forEach { upsertSingle(it) }
+        requests.forEach { upsertSingle(it, callerUserId) }
         requests
             .map { it.competitionId to it.groupId }
             .distinct()
@@ -38,14 +39,17 @@ class OrienteeringResultService {
         requests.map { loadResponse(it.id) }
     }
 
-    suspend fun deleteById(id: String): Boolean = dbQuery {
+    suspend fun deleteById(id: String, callerUserId: String): Boolean = dbQuery {
+        val existing = OrienteeringResults.selectAll().where { OrienteeringResults.id eq id }.singleOrNull()
+            ?: return@dbQuery false
+        requireResultEditAccess(existing[OrienteeringResults.competitionId], callerUserId)
         @Suppress("DEPRECATION")
         SplitTimes.deleteWhere { resultId eq id }
         @Suppress("DEPRECATION")
         OrienteeringResults.deleteWhere { OrienteeringResults.id eq id } > 0
     }
 
-    private fun upsertSingle(req: OrienteeringResultRequest) {
+    private fun upsertSingle(req: OrienteeringResultRequest, callerUserId: String) {
         val now = System.currentTimeMillis()
         val existing = OrienteeringResults.selectAll()
             .where { OrienteeringResults.id eq req.id }
@@ -63,6 +67,11 @@ class OrienteeringResultService {
                 ) }
             throw ConflictException(existing.toResponse(splits), req.serverUpdatedAt, serverTs)
         }
+
+        if (existing != null && existing[OrienteeringResults.competitionId] != req.competitionId) {
+            throw ForbiddenException("Результат принадлежит другому соревнованию")
+        }
+        requireResultEditAccess(req.competitionId, callerUserId)
 
         if (existing == null) {
             OrienteeringResults.insert {

@@ -5,6 +5,7 @@ import com.competra.data.database.entity.OrienteeringCompetitions
 import com.competra.data.database.entity.OrienteeringParticipants
 import com.competra.data.database.entity.ParticipantGroups
 import com.competra.data.exception.ConflictException
+import com.competra.data.exception.ForbiddenException
 import com.competra.data.requests.orienteering.OrienteeringParticipantRequest
 import com.competra.data.requests.orienteering.RegisterParticipantRequest
 import com.competra.data.response.orienteering.OrienteeringParticipantResponse
@@ -37,7 +38,7 @@ class OrienteeringParticipantService {
         }
     }
 
-    suspend fun upsertAll(requests: List<OrienteeringParticipantRequest>): List<OrienteeringParticipantResponse> = dbQuery {
+    suspend fun upsertAll(requests: List<OrienteeringParticipantRequest>, callerUserId: String): List<OrienteeringParticipantResponse> = dbQuery {
         val now = System.currentTimeMillis()
         requests.map { req ->
             val existing = OrienteeringParticipants.selectAll()
@@ -52,6 +53,7 @@ class OrienteeringParticipantService {
             }
 
             if (existing == null) {
+                requireParticipantEditAccess(req.competitionId, callerUserId)
                 OrienteeringParticipants.insert {
                     it[id] = req.id
                     it[userId] = req.userId
@@ -69,6 +71,10 @@ class OrienteeringParticipantService {
                     it[updatedAt] = now
                 }
             } else {
+                if (existing[OrienteeringParticipants.competitionId] != req.competitionId) {
+                    throw ForbiddenException("Участник принадлежит другому соревнованию")
+                }
+                requireParticipantEditAccess(req.competitionId, callerUserId)
                 OrienteeringParticipants.update({ OrienteeringParticipants.id eq req.id }) {
                     it[userId] = req.userId
                     it[firstName] = req.firstName
@@ -93,7 +99,7 @@ class OrienteeringParticipantService {
         }
     }
 
-    suspend fun upsert(req: OrienteeringParticipantRequest): OrienteeringParticipantResponse = dbQuery {
+    suspend fun upsert(req: OrienteeringParticipantRequest, callerUserId: String): OrienteeringParticipantResponse = dbQuery {
         val now = System.currentTimeMillis()
         val existing = OrienteeringParticipants.selectAll()
             .where { OrienteeringParticipants.id eq req.id }
@@ -107,6 +113,7 @@ class OrienteeringParticipantService {
         }
 
         if (existing == null) {
+            requireParticipantEditAccess(req.competitionId, callerUserId)
             OrienteeringParticipants.insert {
                 it[id] = req.id
                 it[userId] = req.userId
@@ -124,6 +131,10 @@ class OrienteeringParticipantService {
                 it[updatedAt] = now
             }
         } else {
+            if (existing[OrienteeringParticipants.competitionId] != req.competitionId) {
+                throw ForbiddenException("Участник принадлежит другому соревнованию")
+            }
+            requireParticipantEditAccess(req.competitionId, callerUserId)
             OrienteeringParticipants.update({ OrienteeringParticipants.id eq req.id }) {
                 it[userId] = req.userId
                 it[firstName] = req.firstName
@@ -244,7 +255,10 @@ class OrienteeringParticipantService {
             .map { it.toResponse() }
     }
 
-    suspend fun deleteById(id: String): Boolean = dbQuery {
+    suspend fun deleteById(id: String, callerUserId: String): Boolean = dbQuery {
+        val existing = OrienteeringParticipants.selectAll().where { OrienteeringParticipants.id eq id }.singleOrNull()
+            ?: return@dbQuery false
+        requireParticipantEditAccess(existing[OrienteeringParticipants.competitionId], callerUserId)
         @Suppress("DEPRECATION")
         OrienteeringParticipants.deleteWhere { OrienteeringParticipants.id eq id } > 0
     }

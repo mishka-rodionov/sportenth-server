@@ -12,6 +12,8 @@ import com.competra.data.requests.orienteering.ParticipantGroupRequest
 import com.competra.data.requests.orienteering.RegisterParticipantRequest
 import com.competra.data.response.base.BaseError
 import com.competra.data.response.base.CommonModel
+import com.competra.data.requests.orienteering.OrganizerRequest
+import com.competra.data.services.CompetitionOrganizerService
 import com.competra.data.services.DistanceService
 import com.competra.data.services.OrienteeringCompetitionService
 import com.competra.data.services.OrienteeringParticipantService
@@ -37,7 +39,8 @@ fun Route.orienteeringPublicRoutes(
     competitionService: OrienteeringCompetitionService,
     participantService: OrienteeringParticipantService,
     resultService: OrienteeringResultService,
-    groupService: ParticipantGroupService
+    groupService: ParticipantGroupService,
+    organizerService: CompetitionOrganizerService
 ) {
     get("/event/orienteering/competitions/public") {
         val kindOfSports = call.request.queryParameters.getAll("kind_of_sports") ?: emptyList()
@@ -110,6 +113,19 @@ fun Route.orienteeringPublicRoutes(
         })
     }
 
+    get("/event/orienteering/organizers") {
+        val competitionId = call.request.queryParameters["competitionId"]
+            ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(400, "competitionId is required")) }
+            )
+        val result = organizerService.getByCompetition(competitionId)
+        call.respond(CommonModel<Any>().also { model ->
+            model.status = 1
+            model.result = result
+        })
+    }
+
     get("/event/orienteering/participants/competition") {
         val competitionId = call.request.queryParameters["competitionId"]
             ?: return@get call.respond(
@@ -161,7 +177,8 @@ fun Route.orienteeringRoutes(
     groupService: ParticipantGroupService,
     participantService: OrienteeringParticipantService,
     resultService: OrienteeringResultService,
-    distanceService: DistanceService
+    distanceService: DistanceService,
+    organizerService: CompetitionOrganizerService
 ) {
     post("/event/orienteering/save/competitions") {
         val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
@@ -220,8 +237,27 @@ fun Route.orienteeringRoutes(
     }
 
     post("/event/orienteering/save/participantGroup") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
         val requests = call.receive<List<ParticipantGroupRequest>>()
-        val result = groupService.upsertAll(requests)
+        val result = groupService.upsertAll(requests, userId)
+        call.respond(CommonModel<Any>().also { model ->
+            model.status = 1
+            model.result = result
+        })
+    }
+
+    post("/event/orienteering/save/organizers") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
+        val requests = call.receive<List<OrganizerRequest>>()
+        val result = organizerService.upsertAll(requests, userId)
         call.respond(CommonModel<Any>().also { model ->
             model.status = 1
             model.result = result
@@ -229,8 +265,13 @@ fun Route.orienteeringRoutes(
     }
 
     post("/event/orienteering/save/participant") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
         val req = call.receive<OrienteeringParticipantRequest>()
-        val result = participantService.upsert(req)
+        val result = participantService.upsert(req, userId)
         call.respond(CommonModel<Any>().also { model ->
             model.status = 1
             model.result = result
@@ -238,8 +279,13 @@ fun Route.orienteeringRoutes(
     }
 
     post("/event/orienteering/save/participants") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
         val requests = call.receive<List<OrienteeringParticipantRequest>>()
-        val result = participantService.upsertAll(requests)
+        val result = participantService.upsertAll(requests, userId)
         call.respond(CommonModel<Any>().also { model ->
             model.status = 1
             model.result = result
@@ -247,8 +293,13 @@ fun Route.orienteeringRoutes(
     }
 
     post("/event/orienteering/save/result") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
         val req = call.receive<OrienteeringResultRequest>()
-        val result = resultService.upsert(req)
+        val result = resultService.upsert(req, userId)
         call.respond(CommonModel<Any>().also { model ->
             model.status = 1
             model.result = result
@@ -256,8 +307,13 @@ fun Route.orienteeringRoutes(
     }
 
     post("/event/orienteering/save/results") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
         val requests = call.receive<List<OrienteeringResultRequest>>()
-        val result = resultService.upsertAll(requests)
+        val result = resultService.upsertAll(requests, userId)
         call.respond(CommonModel<Any>().also { model ->
             model.status = 1
             model.result = result
@@ -265,52 +321,92 @@ fun Route.orienteeringRoutes(
     }
 
     delete("/event/orienteering/competitions/{id}") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@delete call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
         val id = call.parameters["id"]
             ?: return@delete call.respond(
                 HttpStatusCode.BadRequest,
                 CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(400, "id is required")) }
             )
-        val deleted = competitionService.deleteById(id)
+        val deleted = competitionService.deleteById(id, userId)
         call.respond(CommonModel<Any>().also { it.status = if (deleted) 1 else 0 })
     }
 
     delete("/event/orienteering/participantGroups/{id}") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@delete call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
         val id = call.parameters["id"]?.toLongOrNull()
             ?: return@delete call.respond(
                 HttpStatusCode.BadRequest,
                 CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(400, "id is required")) }
             )
-        val deleted = groupService.deleteById(id)
+        val deleted = groupService.deleteById(id, userId)
+        call.respond(CommonModel<Any>().also { it.status = if (deleted) 1 else 0 })
+    }
+
+    delete("/event/orienteering/organizers/{id}") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@delete call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
+        val id = call.parameters["id"]?.toLongOrNull()
+            ?: return@delete call.respond(
+                HttpStatusCode.BadRequest,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(400, "id is required")) }
+            )
+        val deleted = organizerService.deleteById(id, userId)
         call.respond(CommonModel<Any>().also { it.status = if (deleted) 1 else 0 })
     }
 
     delete("/event/orienteering/participants/{id}") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@delete call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
         val id = call.parameters["id"]
             ?: return@delete call.respond(
                 HttpStatusCode.BadRequest,
                 CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(400, "id is required")) }
             )
-        val deleted = participantService.deleteById(id)
+        val deleted = participantService.deleteById(id, userId)
         call.respond(CommonModel<Any>().also { it.status = if (deleted) 1 else 0 })
     }
 
     delete("/event/orienteering/results/{id}") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@delete call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
         val id = call.parameters["id"]
             ?: return@delete call.respond(
                 HttpStatusCode.BadRequest,
                 CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(400, "id is required")) }
             )
-        val deleted = resultService.deleteById(id)
+        val deleted = resultService.deleteById(id, userId)
         call.respond(CommonModel<Any>().also { it.status = if (deleted) 1 else 0 })
     }
 
     delete("/event/orienteering/distances/{id}") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@delete call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
         val id = call.parameters["id"]?.toLongOrNull()
             ?: return@delete call.respond(
                 HttpStatusCode.BadRequest,
                 CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(400, "id is required")) }
             )
-        val deleted = distanceService.deleteById(id)
+        val deleted = distanceService.deleteById(id, userId)
         call.respond(CommonModel<Any>().also { it.status = if (deleted) 1 else 0 })
     }
 
@@ -337,8 +433,13 @@ fun Route.orienteeringRoutes(
     }
 
     post("/event/orienteering/save/distances") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
         val requests = call.receive<List<DistanceRequest>>()
-        val result = distanceService.upsertAll(requests)
+        val result = distanceService.upsertAll(requests, userId)
         call.respond(CommonModel<Any>().also { model ->
             model.status = 1
             model.result = result
@@ -346,6 +447,11 @@ fun Route.orienteeringRoutes(
     }
 
     post("/event/orienteering/import/courses") {
+        val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+            ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(401, "Unauthorized")) }
+            )
         val multipart = call.receiveMultipart()
         var xmlBytes: ByteArray? = null
         var competitionId: String? = null
@@ -369,7 +475,7 @@ fun Route.orienteeringRoutes(
             )
 
         val requests = IOFXmlParser.parse(xmlBytes!!, competitionId!!)
-        val result = distanceService.upsertAll(requests)
+        val result = distanceService.upsertAll(requests, userId)
         call.respond(CommonModel<Any>().also { it.status = 1; it.result = result })
     }
 

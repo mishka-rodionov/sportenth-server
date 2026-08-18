@@ -248,6 +248,10 @@ class OrienteeringCompetitionService(
             .where { Competitions.id eq competitionId }
             .singleOrNull()
 
+        if (existingComp != null) {
+            requireCompetitionEditAccess(competitionId, userId)
+        }
+
         val resultsJustPublished = shouldNotifyResultsPublished(
             oldStatus = existingComp?.get(Competitions.resultsStatus),
             newStatus = req.competition.resultsStatus,
@@ -589,7 +593,8 @@ class OrienteeringCompetitionService(
      * (orienteering_competitions, participant_groups, orienteering_participants,
      * orienteering_results, distances).
      */
-    suspend fun deleteById(competitionId: String): Boolean = dbQuery {
+    suspend fun deleteById(competitionId: String, userId: String): Boolean = dbQuery {
+        requireCompetitionEditAccess(competitionId, userId)
         @Suppress("DEPRECATION")
         Competitions.deleteWhere { Competitions.id eq competitionId } > 0
     }

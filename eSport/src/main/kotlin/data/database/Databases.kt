@@ -9,6 +9,7 @@ import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
 import com.competra.data.database.entity.CompetitionNotifications
+import com.competra.data.database.entity.CompetitionOrganizers
 import com.competra.data.database.entity.Competitions
 import com.competra.data.database.entity.DeviceTokens
 import com.competra.data.database.entity.Distances
@@ -103,7 +104,8 @@ fun Application.configureDatabases() {
             RatingGroups,
             RatingCompetitions,
             RatingGroupMappings,
-            CompetitionNotifications
+            CompetitionNotifications,
+            CompetitionOrganizers
         )
         // Добавляем колонки, которых может не быть в уже существующей таблице
         exec("ALTER TABLE workouts ADD COLUMN IF NOT EXISTS track TEXT")

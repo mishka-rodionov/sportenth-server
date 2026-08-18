@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.competra.data.database.entity.Distances
 import com.competra.data.exception.ConflictException
+import com.competra.data.exception.ForbiddenException
 import com.competra.data.requests.orienteering.ControlPointRequest
 import com.competra.data.requests.orienteering.DistanceRequest
 import com.competra.data.response.orienteering.ControlPointResponse
@@ -29,7 +30,7 @@ class DistanceService {
         if (json.isNullOrBlank()) emptyList()
         else gson.fromJson(json, cpListType) ?: emptyList()
 
-    suspend fun upsertAll(requests: List<DistanceRequest>): List<DistanceResponse> = dbQuery {
+    suspend fun upsertAll(requests: List<DistanceRequest>, userId: String): List<DistanceResponse> = dbQuery {
         val now = System.currentTimeMillis()
         requests.map { req ->
             val cpJson = serializeControlPoints(req.controlPoints)
@@ -47,6 +48,10 @@ class DistanceService {
                 }
 
                 if (existing != null) {
+                    if (existing[Distances.competitionId] != req.competitionId) {
+                        throw ForbiddenException("Дистанция принадлежит другому соревнованию")
+                    }
+                    requireDistanceEditAccess(req.competitionId, userId)
                     Distances.update({ Distances.id eq req.distanceId }) {
                         it[competitionId] = req.competitionId
                         it[name] = req.name
@@ -62,6 +67,7 @@ class DistanceService {
                 }
             }
 
+            requireDistanceEditAccess(req.competitionId, userId)
             val newId = Distances.insert {
                 it[competitionId] = req.competitionId
                 it[name] = req.name
@@ -84,8 +90,10 @@ class DistanceService {
             .map { it.toResponse() }
     }
 
-    @Suppress("UNUSED_PARAMETER")
-    suspend fun deleteById(id: Long): Boolean = dbQuery {
+    suspend fun deleteById(id: Long, userId: String): Boolean = dbQuery {
+        val existing = Distances.selectAll().where { Distances.id eq id }.singleOrNull()
+            ?: return@dbQuery false
+        requireDistanceEditAccess(existing[Distances.competitionId], userId)
         @Suppress("DEPRECATION")
         Distances.deleteWhere { Distances.id eq id } > 0
     }
