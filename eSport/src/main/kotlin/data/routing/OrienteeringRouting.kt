@@ -40,7 +40,8 @@ fun Route.orienteeringPublicRoutes(
     participantService: OrienteeringParticipantService,
     resultService: OrienteeringResultService,
     groupService: ParticipantGroupService,
-    organizerService: CompetitionOrganizerService
+    organizerService: CompetitionOrganizerService,
+    distanceService: DistanceService
 ) {
     get("/event/orienteering/competitions/public") {
         val kindOfSports = call.request.queryParameters.getAll("kind_of_sports") ?: emptyList()
@@ -151,6 +152,23 @@ fun Route.orienteeringPublicRoutes(
                 CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(404, "Competition not found")) }
             )
         call.respond(CommonModel<Any>().also { it.status = 1; it.result = result })
+    }
+
+    // Дистанция (в т.ч. очки/координаты КП) нужна анонимным пользователям для темпа в сплитах и
+    // графика очков BY_CHOICE — тот же уровень доступа, что и у результатов/участников выше:
+    // публично для любого, кто знает competitionId, без проверки владельца или статуса
+    // соревнования (тот же паттерн, что и во всех остальных ручках этой группы).
+    get("/event/orienteering/distances") {
+        val competitionId = call.request.queryParameters["competitionId"]
+            ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(400, "competitionId is required")) }
+            )
+        val result = distanceService.getByCompetition(competitionId)
+        call.respond(CommonModel<Any>().also { model ->
+            model.status = 1
+            model.result = result
+        })
     }
 
     get("/event/orienteering/competitions/public/{id}") {
@@ -477,19 +495,6 @@ fun Route.orienteeringRoutes(
         val requests = IOFXmlParser.parse(xmlBytes!!, competitionId!!)
         val result = distanceService.upsertAll(requests, userId)
         call.respond(CommonModel<Any>().also { it.status = 1; it.result = result })
-    }
-
-    get("/event/orienteering/distances") {
-        val competitionId = call.request.queryParameters["competitionId"]
-            ?: return@get call.respond(
-                HttpStatusCode.BadRequest,
-                CommonModel<Any>().also { it.status = 0; it.errors = listOf(BaseError(400, "competitionId is required")) }
-            )
-        val result = distanceService.getByCompetition(competitionId)
-        call.respond(CommonModel<Any>().also { model ->
-            model.status = 1
-            model.result = result
-        })
     }
 
     delete("/event/orienteering/register/{competitionId}") {

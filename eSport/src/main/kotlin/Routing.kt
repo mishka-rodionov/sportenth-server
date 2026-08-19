@@ -74,7 +74,7 @@ fun Application.configureRouting() {
         healthRoutes()
 
         route("/api") {
-            orienteeringPublicRoutes(competitionService, participantService, resultService, groupService, organizerService)
+            orienteeringPublicRoutes(competitionService, participantService, resultService, groupService, organizerService, distanceService)
             clubsPublicRoutes(clubService, clubMemberService)
             teamsPublicRoutes(teamService, teamMemberService)
             ratingPublicRoutes(ratingService)
