@@ -12,5 +12,10 @@ data class DistanceResponse(
     @SerializedName("description") val description: String?,
     @SerializedName("controlPoints") val controlPoints: List<ControlPointResponse> = emptyList(),
     @SerializedName("finishControlPoint") val finishControlPoint: Int? = null,
+    @SerializedName("mapUrl") val mapUrl: String? = null,
+    @SerializedName("mapTopLeftLat") val mapTopLeftLat: Double? = null,
+    @SerializedName("mapTopLeftLng") val mapTopLeftLng: Double? = null,
+    @SerializedName("mapBottomRightLat") val mapBottomRightLat: Double? = null,
+    @SerializedName("mapBottomRightLng") val mapBottomRightLng: Double? = null,
     @SerializedName("updatedAt") val updatedAt: Long = 0L
 )

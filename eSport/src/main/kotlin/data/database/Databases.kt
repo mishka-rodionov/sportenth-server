@@ -126,6 +126,12 @@ fun Application.configureDatabases() {
         exec("ALTER TABLE competitions ADD COLUMN IF NOT EXISTS website VARCHAR(500)")
         exec("ALTER TABLE distances ADD COLUMN IF NOT EXISTS control_points TEXT")
         exec("ALTER TABLE distances ADD COLUMN IF NOT EXISTS finish_control_point INTEGER")
+        // Карта дистанции (растр из mapper) + гео-привязка углов (WGS84) для наложения на OSM.
+        exec("ALTER TABLE distances ADD COLUMN IF NOT EXISTS map_url VARCHAR(500)")
+        exec("ALTER TABLE distances ADD COLUMN IF NOT EXISTS map_top_left_lat DOUBLE PRECISION")
+        exec("ALTER TABLE distances ADD COLUMN IF NOT EXISTS map_top_left_lng DOUBLE PRECISION")
+        exec("ALTER TABLE distances ADD COLUMN IF NOT EXISTS map_bottom_right_lat DOUBLE PRECISION")
+        exec("ALTER TABLE distances ADD COLUMN IF NOT EXISTS map_bottom_right_lng DOUBLE PRECISION")
         // Формат "по выбору" (score-О): лимит времени и штраф на уровне группы, баллы результата.
         exec("ALTER TABLE participant_groups ADD COLUMN IF NOT EXISTS time_limit_minutes INTEGER")
         exec("ALTER TABLE participant_groups ADD COLUMN IF NOT EXISTS score_penalty_per_minute INTEGER")

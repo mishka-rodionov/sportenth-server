@@ -13,6 +13,11 @@ object Distances : Table("distances") {
     val description = varchar("description", 1000).nullable()
     val controlPoints = text("control_points").nullable()
     val finishControlPoint = integer("finish_control_point").nullable()
+    val mapUrl = varchar("map_url", 500).nullable()
+    val mapTopLeftLat = double("map_top_left_lat").nullable()
+    val mapTopLeftLng = double("map_top_left_lng").nullable()
+    val mapBottomRightLat = double("map_bottom_right_lat").nullable()
+    val mapBottomRightLng = double("map_bottom_right_lng").nullable()
     val updatedAt = long("updated_at").default(0L)
 
     override val primaryKey = PrimaryKey(id)

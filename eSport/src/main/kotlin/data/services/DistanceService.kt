@@ -61,6 +61,11 @@ class DistanceService {
                         it[description] = req.description
                         it[controlPoints] = cpJson
                         it[finishControlPoint] = req.finishControlPoint
+                        it[mapUrl] = req.mapUrl
+                        it[mapTopLeftLat] = req.mapTopLeftLat
+                        it[mapTopLeftLng] = req.mapTopLeftLng
+                        it[mapBottomRightLat] = req.mapBottomRightLat
+                        it[mapBottomRightLng] = req.mapBottomRightLng
                         it[updatedAt] = now
                     }
                     return@map Distances.selectAll().where { Distances.id eq req.distanceId }.single().toResponse()
@@ -77,6 +82,11 @@ class DistanceService {
                 it[description] = req.description
                 it[controlPoints] = cpJson
                 it[finishControlPoint] = req.finishControlPoint
+                it[mapUrl] = req.mapUrl
+                it[mapTopLeftLat] = req.mapTopLeftLat
+                it[mapTopLeftLng] = req.mapTopLeftLng
+                it[mapBottomRightLat] = req.mapBottomRightLat
+                it[mapBottomRightLng] = req.mapBottomRightLng
                 it[updatedAt] = now
             } get Distances.id
 
@@ -108,6 +118,11 @@ class DistanceService {
         description = this[Distances.description],
         controlPoints = deserializeControlPoints(this[Distances.controlPoints]),
         finishControlPoint = this[Distances.finishControlPoint],
+        mapUrl = this[Distances.mapUrl],
+        mapTopLeftLat = this[Distances.mapTopLeftLat],
+        mapTopLeftLng = this[Distances.mapTopLeftLng],
+        mapBottomRightLat = this[Distances.mapBottomRightLat],
+        mapBottomRightLng = this[Distances.mapBottomRightLng],
         updatedAt = this[Distances.updatedAt]
     )
 
