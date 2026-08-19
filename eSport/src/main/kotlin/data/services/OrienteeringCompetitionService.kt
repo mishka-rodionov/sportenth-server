@@ -505,6 +505,7 @@ class OrienteeringCompetitionService(
                     title = row[ParticipantGroups.title],
                     maxParticipants = row[ParticipantGroups.maxParticipants],
                     registeredCount = registeredCount,
+                    distanceId = row[ParticipantGroups.distanceId],
                     distanceName = row[Distances.name],
                     distanceLengthMeters = row[Distances.lengthMeters],
                     distanceClimbMeters = row[Distances.climbMeters],

@@ -5,6 +5,7 @@ data class ParticipantGroupDetailResponse(
     val title: String,
     val maxParticipants: Int?,
     val registeredCount: Int,
+    val distanceId: Long? = null,
     val distanceName: String? = null,
     val distanceLengthMeters: Int? = null,
     val distanceClimbMeters: Int? = null,
