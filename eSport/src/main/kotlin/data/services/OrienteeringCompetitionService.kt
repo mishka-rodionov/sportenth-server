@@ -510,7 +510,10 @@ class OrienteeringCompetitionService(
                     distanceLengthMeters = row[Distances.lengthMeters],
                     distanceClimbMeters = row[Distances.climbMeters],
                     distanceControlsCount = row[Distances.controlsCount],
-                    distanceDescription = row[Distances.description]
+                    distanceDescription = row[Distances.description],
+                    timeLimitMinutes = row[ParticipantGroups.timeLimitMinutes],
+                    scorePenaltyPerMinute = row[ParticipantGroups.scorePenaltyPerMinute],
+                    maxLatenessMinutes = row[ParticipantGroups.maxLatenessMinutes]
                 )
             }
 

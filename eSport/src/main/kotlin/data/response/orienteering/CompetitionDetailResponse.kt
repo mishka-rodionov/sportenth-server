@@ -10,7 +10,13 @@ data class ParticipantGroupDetailResponse(
     val distanceLengthMeters: Int? = null,
     val distanceClimbMeters: Int? = null,
     val distanceControlsCount: Int? = null,
-    val distanceDescription: String? = null
+    val distanceDescription: String? = null,
+    /** Лимит времени для формата "по выбору" (BY_CHOICE), в минутах. */
+    val timeLimitMinutes: Int? = null,
+    /** Штраф в очках за минуту опоздания сверх лимита (BY_CHOICE). */
+    val scorePenaltyPerMinute: Int? = null,
+    /** Порог сильного опоздания, после которого результат обнуляется (BY_CHOICE). */
+    val maxLatenessMinutes: Int? = null
 )
 
 data class CompetitionDetailResponse(
