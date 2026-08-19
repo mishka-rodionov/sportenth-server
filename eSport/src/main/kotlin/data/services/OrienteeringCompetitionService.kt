@@ -537,6 +537,7 @@ class OrienteeringCompetitionService(
             organizerLastName = comp.getOrNull(UserService.Users.lastName),
             organizerMiddleName = comp.getOrNull(UserService.Users.middleName),
             startTime = orient?.get(OrienteeringCompetitions.startTime),
+            direction = orient?.get(OrienteeringCompetitions.direction) ?: "FORWARD",
             coordinates = if (comp[Competitions.latitude] != null && comp[Competitions.longitude] != null)
                 CoordinatesResponse(comp[Competitions.latitude]!!, comp[Competitions.longitude]!!)
             else null,

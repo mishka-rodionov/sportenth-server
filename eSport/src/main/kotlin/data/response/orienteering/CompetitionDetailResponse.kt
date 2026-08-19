@@ -29,6 +29,8 @@ data class CompetitionDetailResponse(
     val coordinates: CoordinatesResponse?,
     val status: String,
     val startTime: Long? = null,
+    /** "FORWARD" / "BY_CHOICE" / "MARKING" — направление ориентирования. */
+    val direction: String = "FORWARD",
     val registrationStart: Long?,
     val registrationEnd: Long?,
     val maxParticipants: Int?,
