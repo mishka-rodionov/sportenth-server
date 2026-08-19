@@ -27,45 +27,61 @@ jobs:
         with:
           context: ./eSport
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest
+          tags: ghcr.io/${{ github.repository }}:latest
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
+      - name: Checkout (for compose files)
+        uses: actions/checkout@v4
+
+      - name: Copy compose files to VPS
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          source: "eSport/docker-compose.yml,eSport/docker-compose.prod.yml,eSport/nginx/**"
+          target: "/opt/competra"
+          strip_components: 1
+          # Без overwrite scp-action молча пропускает уже существующие файлы — поэтому
+          # правки nginx-конфигов раньше не доезжали до VPS и приходилось копировать руками.
+          overwrite: true
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          LOKI_URL: ${{ secrets.LOKI_URL }}
+          LOKI_USER_ID: ${{ secrets.LOKI_USER_ID }}
+          LOKI_API_KEY: ${{ secrets.LOKI_API_KEY }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: GITHUB_REPOSITORY,LOKI_URL,LOKI_USER_ID,LOKI_API_KEY
+          # script_stop: true — шаг упадёт при любой ошибке в скрипте,
+          # вместо того чтобы молча показывать ✅ при сбое деплоя.
+          script_stop: true
           script: |
-            mkdir -p /opt/esport
-
-            curl -fsSL \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3.raw" \
-              "https://api.github.com/repos/${{ github.repository }}/contents/eSport/docker-compose.yml?ref=master" \
-              -o /opt/esport/docker-compose.yml
-
-            curl -fsSL \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3.raw" \
-              "https://api.github.com/repos/${{ github.repository }}/contents/eSport/docker-compose.prod.yml?ref=master" \
-              -o /opt/esport/docker-compose.prod.yml
-
-            cd /opt/esport
-
-            REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-            if grep -q "GITHUB_REPOSITORY" .env 2>/dev/null; then
-              sed -i "s|GITHUB_REPOSITORY=.*|GITHUB_REPOSITORY=$REPO_LOWER|" .env
-            else
-              echo "GITHUB_REPOSITORY=$REPO_LOWER" >> .env
-            fi
-
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
+            cd /opt/competra
+            # Обновляем только нужные переменные, не дублируя их при каждом деплое
+            for var in GITHUB_REPOSITORY LOKI_URL LOKI_USER_ID LOKI_API_KEY; do
+              value=$(eval echo \$$var)
+              if grep -q "^${var}=" .env 2>/dev/null; then
+                sed -i "s|^${var}=.*|${var}=${value}|" .env
+              else
+                echo "${var}=${value}" >> .env
+              fi
+            done
+            docker login ghcr.io -u ${{ github.actor }} --password-stdin <<< "${{ secrets.GITHUB_TOKEN }}"
             docker compose -f docker-compose.yml -f docker-compose.prod.yml pull app
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+            # --force-recreate гарантирует, что контейнер app поднимется с новым образом
+            # и отработает Application init (в т.ч. идемпотентные ALTER TABLE в configureDatabases).
+            # Без него compose иногда не пересоздаёт контейнер с тегом :latest и крутится старый процесс.
+            # --no-deps — не трогать postgres/rabbitmq, они уже работают; вторая up -d без ограничений
+            # приводила к тому, что compose перезапускал postgres, тот не успевал пройти health check
+            # и app падал с "dependency failed to start".
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate --no-deps app
             docker image prune -f
