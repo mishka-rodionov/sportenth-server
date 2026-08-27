@@ -266,14 +266,11 @@ class RatingService {
 
         var rank = 1
         var prevTotal: Int? = null
-        var skipCount = 0
 
         val standings = sortedKeys.mapIndexed { index, key ->
             val total = totals.getValue(key)
-            if (prevTotal != null && total == prevTotal) {
-                skipCount++
-            } else {
-                rank = index + 1 - skipCount
+            if (prevTotal == null || total != prevTotal) {
+                rank = index + 1
             }
             prevTotal = total
 
