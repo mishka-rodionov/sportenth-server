@@ -185,6 +185,9 @@ fun Application.configureDatabases() {
         exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_crop_height DOUBLE PRECISION")
         // Фиксация согласия на обработку персональных данных при регистрации (152-ФЗ ст.9).
         exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS privacy_accepted_at BIGINT")
+        // Организатор произвольным текстом — для соревнований, чей организатор не зарегистрирован
+        // в системе (например, оцифровка прошедших соревнований).
+        exec("ALTER TABLE competitions ADD COLUMN IF NOT EXISTS organizer_name VARCHAR(200)")
 
         // Клубы: опциональный владелец-клуб соревнования. FK добавляется отдельно (идемпотентно
         // через DO-блок ниже), т.к. ADD CONSTRAINT IF NOT EXISTS не поддерживается в PostgreSQL.

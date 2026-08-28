@@ -42,6 +42,9 @@ object Competitions : Table("competitions") {
     val timeZoneId = varchar("time_zone_id", 64).default("UTC")
     /** Опциональный владелец-клуб. Удаление клуба не удаляет соревнование (ON DELETE SET NULL). */
     val organizingClubId = varchar("organizing_club_id", 36).nullable()
+    /** Организатор произвольным текстом (ФИО) — для случаев, когда он не зарегистрирован в системе
+     * (например, оцифровка прошедшего соревнования). Независим от [mainOrganizerId]. */
+    val organizerName = varchar("organizer_name", 200).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

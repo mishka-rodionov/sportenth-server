@@ -272,6 +272,7 @@ class OrienteeringCompetitionService(
                 it[description] = req.competition.description
                 it[address] = req.competition.address
                 it[mainOrganizerId] = req.competition.mainOrganizerId
+                it[organizerName] = req.competition.organizerName
                 it[latitude] = req.competition.coordinates?.latitude
                 it[longitude] = req.competition.coordinates?.longitude
                 it[status] = req.competition.status
@@ -307,10 +308,16 @@ class OrienteeringCompetitionService(
                 it[description] = req.competition.description
                 it[address] = req.competition.address
                 it[mainOrganizerId] = req.competition.mainOrganizerId
+                it[organizerName] = req.competition.organizerName
                 it[latitude] = req.competition.coordinates?.latitude
                 it[longitude] = req.competition.coordinates?.longitude
                 it[isTest] = req.competition.isTest
-                it[status] = if (req.competition.registrationStart == null) "REGISTRATION_OPEN" else "CREATED"
+                // "FINISHED" пропускаем как есть — единственный статус, который клиент может задать
+                // напрямую при создании (мастер "Добавить прошедшее соревнование"); остальные значения
+                // здесь недостоверны (реальный статус вычисляется по датам регистрации), поэтому
+                // игнорируются в пользу вычисленного умолчания.
+                it[status] = if (req.competition.status == "FINISHED") "FINISHED"
+                    else if (req.competition.registrationStart == null) "REGISTRATION_OPEN" else "CREATED"
                 it[registrationStart] = req.competition.registrationStart
                 it[registrationEnd] = req.competition.registrationEnd
                 it[maxParticipants] = req.competition.maxParticipants
@@ -537,6 +544,7 @@ class OrienteeringCompetitionService(
             address = comp[Competitions.address],
             mainOrganizerId = comp[Competitions.mainOrganizerId],
             organizingClubId = comp[Competitions.organizingClubId],
+            organizerName = comp[Competitions.organizerName],
             organizerFirstName = comp.getOrNull(UserService.Users.firstName),
             organizerLastName = comp.getOrNull(UserService.Users.lastName),
             organizerMiddleName = comp.getOrNull(UserService.Users.middleName),

@@ -10,6 +10,8 @@ data class CompetitionRequest(
     @SerializedName("description") val description: String?,
     @SerializedName("address") val address: String?,
     @SerializedName("mainOrganizerId") val mainOrganizerId: String?,
+    /** Организатор произвольным текстом (ФИО) — независим от [mainOrganizerId], не требует аккаунта. */
+    @SerializedName("organizerName") val organizerName: String? = null,
     @SerializedName("coordinates") val coordinates: CoordinatesRequest?,
     @SerializedName("status") val status: String,
     @SerializedName("registrationStart") val registrationStart: Long?,

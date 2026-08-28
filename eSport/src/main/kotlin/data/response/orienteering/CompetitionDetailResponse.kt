@@ -33,6 +33,8 @@ data class CompetitionDetailResponse(
     val organizerFirstName: String? = null,
     val organizerLastName: String? = null,
     val organizerMiddleName: String? = null,
+    /** Организатор произвольным текстом — независим от аккаунта, привязанного к mainOrganizerId. */
+    val organizerName: String? = null,
     val coordinates: CoordinatesResponse?,
     val status: String,
     val startTime: Long? = null,
