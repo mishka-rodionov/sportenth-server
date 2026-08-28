@@ -3,6 +3,8 @@ package com.competra.data.response.orienteering
 data class ParticipantGroupDetailResponse(
     val groupId: Long,
     val title: String,
+    /** "M" / "F" / null — используется для сортировки групп (мужские → женские → остальные). */
+    val gender: String? = null,
     val maxParticipants: Int?,
     val registeredCount: Int,
     val distanceId: Long? = null,

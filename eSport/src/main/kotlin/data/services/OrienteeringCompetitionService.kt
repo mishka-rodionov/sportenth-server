@@ -46,6 +46,24 @@ import org.jetbrains.exposed.sql.update
 internal fun shouldNotifyResultsPublished(oldStatus: String?, newStatus: String): Boolean =
     oldStatus == "NOT_PUBLISHED" && newStatus in listOf("PRELIMINARY", "OFFICIAL")
 
+/**
+ * Порядок групп на экране результатов: мужские → женские → остальные (смешанные/не определено).
+ * Пол берётся из явного флага группы ("M"/"F"); если он не задан — из первой буквы названия
+ * (стандартная нотация категорий в ориентировании: "М21", "Ж35"). Чистая функция — покрыта unit-тестом.
+ */
+internal fun participantGroupSortPriority(title: String, gender: String?): Int {
+    val normalizedGender = gender ?: when {
+        title.startsWith("М", ignoreCase = true) -> "M"
+        title.startsWith("Ж", ignoreCase = true) -> "F"
+        else -> null
+    }
+    return when (normalizedGender) {
+        "M" -> 0
+        "F" -> 1
+        else -> 2
+    }
+}
+
 class OrienteeringCompetitionService(
     private val fcmService: FcmService,
     private val notificationLogService: CompetitionNotificationLogService,
@@ -510,6 +528,7 @@ class OrienteeringCompetitionService(
                 ParticipantGroupDetailResponse(
                     groupId = row[ParticipantGroups.id],
                     title = row[ParticipantGroups.title],
+                    gender = row[ParticipantGroups.gender],
                     maxParticipants = row[ParticipantGroups.maxParticipants],
                     registeredCount = registeredCount,
                     distanceId = row[ParticipantGroups.distanceId],
@@ -523,6 +542,7 @@ class OrienteeringCompetitionService(
                     maxLatenessMinutes = row[ParticipantGroups.maxLatenessMinutes]
                 )
             }
+            .sortedBy { participantGroupSortPriority(it.title, it.gender) }
 
         val isUserRegistered = if (userId != null) {
             OrienteeringParticipants.selectAll()
