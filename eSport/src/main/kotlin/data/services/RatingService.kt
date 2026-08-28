@@ -44,6 +44,18 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.update
 import java.util.UUID
 
+/**
+ * ParticipantGroups.gender хранится как "M"/"F" (см. GENDER_OPTIONS в web-клиенте ManageCompetitionPage.kt),
+ * а RatingGroups.gender — как "MALE"/"FEMALE"/"MIXED" (см. RatingFormPage.kt). Приводит формат
+ * ParticipantGroup к формату RatingGroup, чтобы их можно было сравнивать в suggestGroupMapping.
+ * Чистая функция — покрыта unit-тестом.
+ */
+internal fun normalizeParticipantGroupGender(gender: String?): String? = when (gender) {
+    "M" -> "MALE"
+    "F" -> "FEMALE"
+    else -> gender
+}
+
 /** Рейтинг всегда публичен для чтения: список/детали/standings доступны без авторизации, мутации — только FOUNDER/ADMIN клуба-владельца. */
 class RatingService {
 
@@ -334,7 +346,8 @@ class RatingService {
                 val rgGender = rg[RatingGroups.gender]
                 val rgMinAge = rg[RatingGroups.minAge]
                 val rgMaxAge = rg[RatingGroups.maxAge]
-                val genderMatches = rgGender == null || pgGender == null || rgGender == pgGender
+                val genderMatches = rgGender == null || pgGender == null ||
+                    rgGender == normalizeParticipantGroupGender(pgGender)
                 val ageOverlaps = ageRangesOverlap(pgMinAge, pgMaxAge, rgMinAge, rgMaxAge)
                 genderMatches && ageOverlaps
             }
