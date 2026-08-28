@@ -64,6 +64,14 @@ internal fun participantGroupSortPriority(title: String, gender: String?): Int {
     }
 }
 
+/**
+ * Возраст, извлечённый из первого числа в названии группы (например "М21" → 21, "M60+" → 60).
+ * Вторичный ключ сортировки внутри одного гендерного блока (см. [participantGroupSortPriority]).
+ * Если числа в названии нет — null; такие группы остаются в исходном относительном порядке
+ * в конце своего блока (после пронумерованных). Чистая функция — покрыта unit-тестом.
+ */
+internal fun extractAgeFromTitle(title: String): Int? = Regex("\\d+").find(title)?.value?.toIntOrNull()
+
 class OrienteeringCompetitionService(
     private val fcmService: FcmService,
     private val notificationLogService: CompetitionNotificationLogService,
@@ -542,7 +550,10 @@ class OrienteeringCompetitionService(
                     maxLatenessMinutes = row[ParticipantGroups.maxLatenessMinutes]
                 )
             }
-            .sortedBy { participantGroupSortPriority(it.title, it.gender) }
+            .sortedWith(
+                compareBy<ParticipantGroupDetailResponse> { participantGroupSortPriority(it.title, it.gender) }
+                    .thenBy(nullsLast()) { extractAgeFromTitle(it.title) }
+            )
 
         val isUserRegistered = if (userId != null) {
             OrienteeringParticipants.selectAll()
