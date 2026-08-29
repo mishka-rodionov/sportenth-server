@@ -33,6 +33,7 @@ import org.slf4j.event.*
 fun Application.configureHTTP() {
     install(CORS) {
         allowHost("mishka-rodionov.github.io", schemes = listOf("https"))
+        allowHost("start.competra.ru", schemes = listOf("https"))
         allowHost("localhost:8080", schemes = listOf("http"))
         allowHost("localhost:3000", schemes = listOf("http"))
         allowHeader(HttpHeaders.ContentType)
