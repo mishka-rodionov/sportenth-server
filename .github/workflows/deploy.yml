@@ -84,4 +84,10 @@ jobs:
             # приводила к тому, что compose перезапускал postgres, тот не успевал пройти health check
             # и app падал с "dependency failed to start".
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate --no-deps app
+            # nginx не пересоздаётся выше, поэтому правки nginx/conf.d не долетают
+            # до работающего процесса сами по себе — reload делаем явно, с проверкой
+            # синтаксиса перед этим, чтобы битый конфиг падал в CI, а не тихо оставлял
+            # старый конфиг висеть в памяти.
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml exec nginx nginx -t
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml exec nginx nginx -s reload
             docker image prune -f
