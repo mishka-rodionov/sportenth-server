@@ -52,10 +52,11 @@ object IOFXmlParser {
                 val role   = when (type) { "Start" -> "start"; "Finish" -> "finish"; else -> "ordinary" }
                 if (role == "finish" && code != null) finishNumber = code
                 val position = controlPositions[ctrlId]
+                val score  = cc.getElementsByTagName("Score").item(0)?.textContent?.toIntOrNull() ?: 0
                 ControlPointRequest(
                     number = code ?: j,
                     role = role,
-                    score = 0,
+                    score = score,
                     latitude = position?.first,
                     longitude = position?.second
                 )
