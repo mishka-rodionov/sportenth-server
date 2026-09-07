@@ -61,6 +61,7 @@ class OrienteeringResultService {
         ) {
             val splits = SplitTimes.selectAll()
                 .where { SplitTimes.resultId eq req.id }
+                .orderBy(SplitTimes.timestamp)
                 .map { com.competra.data.response.orienteering.SplitTimeResponse(
                     it[SplitTimes.controlPoint],
                     it[SplitTimes.timestamp]
@@ -126,6 +127,7 @@ class OrienteeringResultService {
         val row = OrienteeringResults.selectAll().where { OrienteeringResults.id eq resultId }.single()
         val splits = SplitTimes.selectAll()
             .where { SplitTimes.resultId eq resultId }
+            .orderBy(SplitTimes.timestamp)
             .map { SplitTimeResponse(it[SplitTimes.controlPoint], it[SplitTimes.timestamp]) }
         return row.toResponse(splits)
     }
@@ -195,6 +197,7 @@ class OrienteeringResultService {
             .map { row ->
                 val splits = SplitTimes.selectAll()
                     .where { SplitTimes.resultId eq row[OrienteeringResults.id] }
+                    .orderBy(SplitTimes.timestamp)
                     .map { SplitTimeResponse(it[SplitTimes.controlPoint], it[SplitTimes.timestamp]) }
                 row.toResponse(splits)
             }
