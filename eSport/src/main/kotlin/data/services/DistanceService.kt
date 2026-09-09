@@ -61,6 +61,7 @@ class DistanceService {
                         it[description] = req.description
                         it[controlPoints] = cpJson
                         it[finishControlPoint] = req.finishControlPoint
+                        it[startControlPoint] = req.startControlPoint
                         it[mapUrl] = req.mapUrl
                         it[mapTopLeftLat] = req.mapTopLeftLat
                         it[mapTopLeftLng] = req.mapTopLeftLng
@@ -118,6 +119,7 @@ class DistanceService {
         description = this[Distances.description],
         controlPoints = deserializeControlPoints(this[Distances.controlPoints]),
         finishControlPoint = this[Distances.finishControlPoint],
+        startControlPoint = this[Distances.startControlPoint],
         mapUrl = this[Distances.mapUrl],
         mapTopLeftLat = this[Distances.mapTopLeftLat],
         mapTopLeftLng = this[Distances.mapTopLeftLng],

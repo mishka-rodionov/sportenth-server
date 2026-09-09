@@ -72,6 +72,7 @@ class IOFXmlParserTest {
         assertEquals(50.9997745, finish.latitude)
         assertEquals(8.0071138, finish.longitude)
         assertEquals(finish.number, distance.finishControlPoint)
+        assertEquals(start.number, distance.startControlPoint)
     }
 
     @Test

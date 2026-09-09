@@ -126,6 +126,8 @@ fun Application.configureDatabases() {
         exec("ALTER TABLE competitions ADD COLUMN IF NOT EXISTS website VARCHAR(500)")
         exec("ALTER TABLE distances ADD COLUMN IF NOT EXISTS control_points TEXT")
         exec("ALTER TABLE distances ADD COLUMN IF NOT EXISTS finish_control_point INTEGER")
+        // Стартовый КП (отдельная физическая старт-станция) — для StartTimeMode.BY_START_STATION.
+        exec("ALTER TABLE distances ADD COLUMN IF NOT EXISTS start_control_point INTEGER")
         // Карта дистанции (растр из mapper) + гео-привязка углов (WGS84) для наложения на OSM.
         exec("ALTER TABLE distances ADD COLUMN IF NOT EXISTS map_url VARCHAR(500)")
         exec("ALTER TABLE distances ADD COLUMN IF NOT EXISTS map_top_left_lat DOUBLE PRECISION")

@@ -41,6 +41,7 @@ object IOFXmlParser {
 
             val courseControls = course.getElementsByTagName("CourseControl")
             var finishNumber: Int? = null
+            var startNumber: Int? = null
             val controlPoints = (0 until courseControls.length).map { j ->
                 val cc     = courseControls.item(j) as Element
                 val type   = cc.getAttribute("type")
@@ -51,6 +52,7 @@ object IOFXmlParser {
                 // разобрать поле и роняет NPE при сборке доменной модели дистанции.
                 val role   = when (type) { "Start" -> "start"; "Finish" -> "finish"; else -> "ordinary" }
                 if (role == "finish" && code != null) finishNumber = code
+                if (role == "start" && code != null) startNumber = code
                 val position = controlPositions[ctrlId]
                 val score  = cc.getElementsByTagName("Score").item(0)?.textContent?.toIntOrNull() ?: 0
                 ControlPointRequest(
@@ -72,6 +74,7 @@ object IOFXmlParser {
                 description = null,
                 controlPoints = controlPoints,
                 finishControlPoint = finishNumber,
+                startControlPoint = startNumber,
                 serverUpdatedAt = null
             )
         }

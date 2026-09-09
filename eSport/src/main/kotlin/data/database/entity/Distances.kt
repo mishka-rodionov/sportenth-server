@@ -13,6 +13,7 @@ object Distances : Table("distances") {
     val description = varchar("description", 1000).nullable()
     val controlPoints = text("control_points").nullable()
     val finishControlPoint = integer("finish_control_point").nullable()
+    val startControlPoint = integer("start_control_point").nullable()
     val mapUrl = varchar("map_url", 500).nullable()
     val mapTopLeftLat = double("map_top_left_lat").nullable()
     val mapTopLeftLng = double("map_top_left_lng").nullable()
